@@ -1,45 +1,95 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os 
+import math
 
-# Rosenbrock's function
-def Rosenbrock_fn(x1,x2):
-    return (1-x1)**2 + 100*(x2-x1**2)**2
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 
-# Himmelblau's function
-def Himmelblau_fn(x1,x2):
-    return (x1**2+x2-11)**2 + (x1+x2**2-7)**2
+class Plot:
+    def __init__(self, func):
+        """Initialize with a callable function."""
+        self.func = func
 
-# Define plotting parameters
-functions = [
-    (Rosenbrock_fn, "Rosenbrock's function", 'viridis'),
-    (Himmelblau_fn, "Himmelblau's function", 'plasma')
-]
+    def contour(self, x_range, y_range, resolution=100):
+        """Plot a contour."""
+        x = np.linspace(*x_range, resolution)
+        y = np.linspace(*y_range, resolution)
+        X, Y = np.meshgrid(x, y)
+        Z = self.func(X, Y)
+        plt.contour(X, Y, Z, levels=50, cmap='inferno')
+        plt.colorbar()
+        plt.show()
 
-# Generate grid
-x = np.linspace(-5, 5, 100)
-y = np.linspace(-5, 5, 100)
-X, Y = np.meshgrid(x, y)
+    def density_3d(self, x_range, y_range, resolution=100):
+        """Plot a 3D density surface."""
+        x = np.linspace(*x_range, resolution)
+        y = np.linspace(*y_range, resolution)
+        X, Y = np.meshgrid(x, y)
+        Z = self.func(X, Y)
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot_surface(X, Y, Z, cmap='viridis')
+        ax.view_init(elev=30, azim=120)
+        plt.show()
 
-# Create figure
-fig = plt.figure(figsize=(12, 6))
+class Rosenbrock:
 
-# Loop through functions and plot
-for i, (func, title, cmap) in enumerate(functions, start=1):
-    ax = fig.add_subplot(1, 2, i, projection='3d')
-    Z = func(X, Y)
-    ax.plot_surface(X, Y, Z, cmap=cmap, edgecolor='k')
-    ax.set_xlabel('x1')
-    ax.set_ylabel('x2')
-    ax.set_title(title)
+    name = "Rosenbrock's function"
+    equation = r"$f(x, y) = (1 - x)^2 + 100(y - x^2)^2$"
+
+    @staticmethod
+    def function(x, y):
+        return (1 - x)**2 + 100 * (y - x**2)**2
+    
+    @staticmethod
+    def log_function(x, y):
+        return np.log((1 - x)**2 + 100 * (y - x**2)**2)
+
+    @staticmethod
+    def gradient(x, y):
+        dx = -2 * (1 - x) - 400 * x * (y - x**2)
+        dy = 200 * (y - x**2)
+        return np.array([dx, dy])
+
+    @staticmethod
+    def hessian(x, y):
+        dxx = 2 - 400 * (y - 3 * x**2)
+        dxy = -400 * x
+        dyy = 200
+        return np.array([[dxx, dxy], [dxy, dyy]])
 
 
-# Get the current directory and define the relative output path
-output_dir = os.path.join(os.getcwd(), "output")
-os.makedirs(output_dir, exist_ok=True)  
-filepath = os.path.join(output_dir, "plot3D")
+class Himmelblau:
 
-# Save the plot
-plt.savefig(filepath, format="png", dpi=300)
-plt.show()  # Display the plot
-plt.close()  # Close the figure to avoid display
+    name = "Himmelblau's function"
+    equation = r"$f(x,y)=(x^2+y-11)^2 + (x + y^2 - 7)^2$"
+
+    @staticmethod
+    def function(x, y):
+        return (x**2 + y - 11)**2 + (x + y**2 - 7)**2
+    
+    @staticmethod
+    def log_function(x,y):
+        return np.log((x**2 + y - 11)**2 + (x + y**2 - 7)**2)
+
+    @staticmethod
+    def gradient(x, y):
+        dx = 4 * x * (x**2 + y - 11) + 2 * (x + y**2 - 7)
+        dy = 2 * (x**2 + y - 11) + 4 * y * (x + y**2 - 7)
+        return np.array([dx, dy])
+
+    @staticmethod
+    def hessian(x, y):
+        dxx = 12 * x**2 + 4 * y - 42
+        dxy = 4 * x + 4 * y
+        dyy = 12 * y**2 + 4 * x - 26
+        return np.array([[dxx, dxy], [dxy, dyy]])
+
+
+# example usage
+Plot(Rosenbrock.function).density_3d(x_range=[-2,2],y_range=[-1,3])
+plt.close()
+
+
