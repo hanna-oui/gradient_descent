@@ -1,5 +1,8 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
+import time
+import tracemalloc
 
 class Plot:
     def __init__(self, func):
@@ -106,21 +109,86 @@ class GradientDescent:
             tau *= beta
         return tau
     
-    def optimize(self, x0, step_type, fixed_tau=0.001, epsilon=10e-5):
+    def optimize(self, x0, step_type, fixed_tau=0.0001, epsilon=10e-5):
         xk = x0 
         i = 0
+        
+        gradient_norm = []
+        function_value = []
+        step_size = []
+        
+        if step_type == "fixed":
+                tau = fixed_tau
+                step_size = step_size.append(fixed_tau)
+        
         while np.linalg.norm(self.grad(xk)) > epsilon:
             if step_type == "armijo":
                 tau = self.armijo_step(xk)
-            if step_type == "fixed":
-                tau = fixed_tau
+                step_size.append(tau)
+            
             xk = xk - tau*self.grad(xk) 
             i+=1
-            print(f"Iteration: {i}")
-            print(f"Gradient Norm: {np.linalg.norm(self.grad(xk))}")
-            print(f"Function Value: {self.f(xk)}")
-            print(f"Current point {xk}")
-        return xk, i
-            
 
-print(GradientDescent("Himmelblau").optimize([np.pi+1,np.pi-1], "fixed"))
+            function_value.append(self.f(xk))
+            gradient_norm.append(np.linalg.norm(self.grad(xk)))
+
+            
+        return xk, i, function_value, gradient_norm, step_size
+    
+
+columns = [
+    "Function", "Initial Point", "Step Size", "Iterations",
+    "Convergence Point", "Function Value", "Gradient Norm",
+    "Time", "Storage"
+]
+results_df = pd.DataFrame(columns=columns)
+
+f_name = ["Rosenbrock", "Himmelblau"]
+x_not = [np.array([0,0]), np.array([np.pi+1, np.pi-1])]
+step_type = ["fixed", "armijo"]
+elapsed_times = []
+memory_usages = []
+
+for f in f_name:
+    GD = GradientDescent(f)
+    for x in x_not:
+        for s in step_type:
+            # Start timer and memory tracker
+            start_time = time.time()  
+            tracemalloc.start()
+
+            # Begin optimizing 
+            xk, i, function_value, gradient_norm, step_size = GD.optimize(x0=x,step_type=s)
+
+            # Stop timer and memory tracking
+            end_time = time.time() 
+            current_memory, peak_memory = tracemalloc.get_traced_memory()
+            tracemalloc.stop()  
+
+            # Save memory and storage
+            elapsed_time = end_time - start_time
+            peak_memory_mb = peak_memory / 10**6
+
+
+            results_df = results_df.append({
+                "Function": f,
+                "Initial Point": x.tolist(),
+                "Step Size": step_size,
+                "Iterations": i,
+                "Convergence Point": xk.tolist(),
+                "Function Value": function_value,
+                "Gradient Norm": gradient_norm,
+                "Time": elapsed_time,
+                "Storage": peak_memory_mb
+            }, ignore_index=True)
+
+# Display or save the results
+print(results_df)
+
+'''
+print(f"Iteration: {i}")
+print(f"Gradient Norm: {np.linalg.norm(self.grad(xk))}")
+print(f"Function Value: {self.f(xk)}")
+print(f"Step size used {tau}")
+print(f"Current point {xk}")
+'''
